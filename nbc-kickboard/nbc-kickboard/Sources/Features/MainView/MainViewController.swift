@@ -22,6 +22,7 @@ class MainViewController: UIViewController {
         setupActions()
         setupLocationManager()
         setupBindings()
+        mainView.mapView.delegate = self
     }
 
     private func setupActions() {
@@ -64,7 +65,7 @@ class MainViewController: UIViewController {
         let maxLat = location.coordinate.latitude + spanRange
         let minLng = location.coordinate.longitude - spanRange
         let maxLng = location.coordinate.longitude + spanRange
-        
+
         do {
             kickboards = try kickboardRepository.fetchKickboardsInAreaOf(
                 minLat: minLat,
@@ -72,11 +73,15 @@ class MainViewController: UIViewController {
                 minLng: minLng,
                 maxLng: maxLng
             )
+            if kickboards.isEmpty {
+                print("No kickboards found in the region.")
+            }
             updateAnnotations()
         } catch {
             print("Failed to fetch kickboards: \(error)")
         }
     }
+
     
     private func drawRoute(to coordinate: CLLocationCoordinate2D) {
         guard let userLocation = locationManager.location?.coordinate else { return }
