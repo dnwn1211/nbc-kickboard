@@ -8,8 +8,6 @@ import UIKit
 import SnapKit
 
 
-
-
 class AuthViewController: UIViewController, LoginViewDelegate {
     // MARK: - Properties
     
@@ -19,7 +17,7 @@ class AuthViewController: UIViewController, LoginViewDelegate {
     
     // MARK: - init & Life cyclesas
     
-    init(userEntityRepository: UserEntityRepository = UserEntityRepository()) {
+    init(userEntityRepository: UserEntityRepositoryProtocol = UserEntityRepository()) {
         self.userEntityRepository = userEntityRepository
         self.loginUseCase = LoginUseCase(userEntityRepository: self.userEntityRepository)
         super.init(nibName: nil, bundle: nil)
@@ -36,6 +34,7 @@ class AuthViewController: UIViewController, LoginViewDelegate {
         
         view = loginView
         setupUI()
+        setDefaultUserInfo()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -76,35 +75,27 @@ extension AuthViewController {
         
         switch result {
         case .success(let userEntity):
-            let alert = UIAlertController(
-                title: "로그인 성공",
-                message: "\(userEntity.username ?? "??")님 환영합니다. 이건 테스트용 경고",
-                preferredStyle: .alert
-            )
             
-            let confirmAction = UIAlertAction(title: "확인", style: .default) { [weak self] _ in
-                guard let self = self else { return }
-                
-                UserDefaults.standard.set(userEntity.username, forKey: "username")
-                UserDefaults.standard.set(userEntity.isAdmin, forKey: "isAdmin")
-                
-                navigationController?.pushViewController(CustomTabBarController(), animated: false)
-            }
+            // 현재 로그인된 사용자의 정보 저장
+            UserDefaults.standard.set(userEntity.username, forKey: "username")
+            UserDefaults.standard.set(userEntity.isAdmin, forKey: "isAdmin")
             
-            alert.addAction(confirmAction)
-            present(alert, animated: true)
+            // 마지막으로 로그인에 성공한 사용자아이디 및 암호 저장
+            UserDefaults.standard.set(username, forKey: "lastLoginUsername")
+            UserDefaults.standard.set(password, forKey: "lastLoginPassword")
+            
+            navigationController?.pushViewController(CustomTabBarController(), animated: false)
+            
         case .failure(let error):
             let errorMessage: String = error.messages.reduce("") { "\($0)\n- \($1)" }
-            let alert = UIAlertController(
-                title: "로그인 실패",
-                message: errorMessage,
-                preferredStyle: .alert
-            )
             
-            let cancelAction = UIAlertAction(title: "확인", style: .default)
-            alert.addAction(cancelAction)
-            
-            present(alert, animated: true)
+            AppHelpers.showBasicAlert(title: "로그인 실패", message: errorMessage, action: { print("Alert 종료")})
+        }
+    }
+    
+    func setDefaultUserInfo() {
+        if let username = UserDefaults.standard.object(forKey:"lastLoginUsername"), let password = UserDefaults.standard.object(forKey: "lastLoginPassword") {
+            loginView.setLastLoginUserData(username: username as! String, password: password as! String)
         }
     }
 }
